@@ -1,67 +1,84 @@
-require './player.rb'
-require './cpu.rb'
+require './player'
+require './cpu'
+require './pins'
 
 class Game
-  include Display
-
   @@count = 0
 
   def initialize
-    puts "Who will be the master? 1 for Cpu, 2 for Player"
+    puts 'Who will be the master? 1 for Cpu, 2 for Player'
     @master = gets.to_i
-    if @master == 1
+    case @master
+    when 1
       @name = 'Cpu'
       @code = Cpu.new(true).sequence
-      play()
-    elsif @master == 2
+      play
+    when 2
       @name = 'Player'
       @code = Player.new(true).sequence
-    else 
-      puts "Please pick 1 or 2"
-      initialize()
+      play
+    else
+      puts 'Please pick 1 or 2'
+      initialize
     end
   end
-  #cpu is master
-  def round
-    pins = Pins.new
+
+  private
+
+  def round(pins)
     master = @code.dup
-    breaker = Player.new().sequence
+    case @name
+    when 'Cpu'
+      breaker = Player.new.sequence
+    when 'Player'
+      b = Cpu.new(false, pins)
+      breaker = b.sequence.dup
+    end
+    pins = Pins.new
     i = 3
 
     until i == -1
       if breaker[i] == master[i]
-        pins.sequence << 'R'
+        pins.sequence[:red] += 1
         master.delete_at(i)
         breaker.delete_at(i)
       end
       i -= 1
-    end 
+    end
 
-    breaker.each_with_index do |v, v_idx|
+    breaker.each do |v|
       i = master.index(v)
-      if i != nil
-        pins.sequence << 'W'
+      unless i.nil?
+        pins.sequence[:white] += 1
         master.delete_at(i)
       end
     end
+
+    if pins.sequence[:red] == 4
+      puts 'Breaker wins!'
+      exit
+    end
     pins.display
 
-    if pins.sequence == ['R', 'R', 'R', 'R']
-      puts "Breaker wins!"
-      exit
+    if @name == 'Player'
+      puts "Cpu is thinking..."
+      sleep 3
     end
+    pins.sequence
   end
 
-  def play
+  def play(pins = 0)
     if @@count == 12
-      puts "Masters wins!" 
+      puts 'Masters wins!'
+      puts ''
+      puts " The #{@name}'s secret code was:"
+      puts " #{@code[0]} | #{@code[1]} | #{@code[2]} | #{@code[3]}"
+      puts ''
       exit
     end
-    round()
     @@count += 1
-    play()
+    play(round(pins))
   end
 end
 
-game = Game.new
-    
+Game.new
